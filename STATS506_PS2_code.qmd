@@ -2,10 +2,232 @@
 title: "STATS506_PS2_code"
 ---
 
-## Quarto
+## Problem 1
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+### Task (a)
+
+Before we start, we need to define a random number generator to control the randomization in all 4 versions of `play_dice` function.
 
 ```{r}
-1 + 1
+#' Function to create a random number generator function
+#'
+#' @param seed a numeric value
+#' @return a function that receives n as input and generates a n-dimensional random vector using the seed
+myRng <- function(seed) {
+  set.seed(seed)
+  return(function(n) {
+    sample(1:6, n, replace = TRUE)
+  })
+}
+```
+
+Then, we try to implement 4 versions of `play_dice`function.
+
+```{r}
+#' Version 1: Implement this game using a loop over the die rolls.
+#' 
+#' @param num_rolls an integer indicating the number of rolls
+#' @param rng a function as a random number generator
+#' @return total net revenue of the dice-rolls
+play_dice_v1 <- function(num_rolls, rng) {
+  
+  # Generate the rolls using given RNG
+  rolls <- rng(num_rolls)
+  
+  # Iterate over `num_rolls` to calculate total revenue
+  revenue <- 0
+  for (i in 1:num_rolls) {
+    if (rolls[i] %in% c(2, 4, 6)) {
+      revenue <- revenue + rolls[i]
+    } 
+  }
+  
+  # Calculate net income using net_income = revenue - cost
+  cost <- 2*num_rolls
+  return(revenue-cost)
+}
+```
+
+```{r}
+#' Version 2: Implement this game using built-in R vectorized functions.
+#' 
+#' @param num_rolls an integer indicating the number of rolls
+#' @param rng a function as a random number generator
+#' @return total net revenue of the dice-rolls
+play_dice_v2 <- function(num_rolls, rng) {
+  
+  # Generate the rolls using given RNG
+  rolls <- rng(num_rolls)
+
+  # Calculate revenue using R vectorized function
+  revenue <- sum(2*(rolls == 2)+ 4*(rolls == 4) + 6*(rolls == 6))
+  
+  # Calculate net income using net_income = revenue - cost
+  cost <- 2*num_rolls
+  return(revenue-cost)
+}
+```
+
+```{r}
+#' Version 3: Implement this by collapsing the die rolls into a single table().
+#' 
+#' @param num_rolls an integer indicating the number of rolls
+#' @param rng a function as a random number generator
+#' @return total net revenue of the dice-rolls
+play_dice_v3 <- function(num_rolls, rng) {
+  
+  # Generate the rolls using given RNG
+  rolls <- rng(num_rolls)
+  
+  # Collapse the die rolls into a single table
+  roll_counts <- table(rolls)
+
+  # Iterate over items in the table
+  # Notice that the length of the table can be 6 at most. So this is not computationally costly.
+  revenue <- 0
+  for (i in names(roll_counts)){
+    if (as.numeric(i) == 2){
+      revenue <- revenue + 2*roll_counts[as.character(i)]
+      next
+    }
+    if (as.numeric(i) == 4){
+      revenue <- revenue + 4*roll_counts[as.character(i)]
+      next
+    }
+    if (as.numeric(i) == 6){
+      revenue <- revenue + 6*roll_counts[as.character(i)]
+    }
+  }
+  revenue <- as.numeric(revenue)
+  
+  # Calculate net income using net_income = revenue - cost
+  cost <- 2*num_rolls
+  return(revenue-cost)
+}
+```
+
+```{r}
+#' Version 4: Implement this game by using one of the “apply” functions.
+#' 
+#' @param num_rolls an integer indicating the number of rolls
+#' @param rng a function as a random number generator
+#' @return total net revenue of the dice-rolls
+play_dice_v4 <- function(num_rolls, rng) {
+  
+  # Generate the rolls using given RNG
+  rolls <- rng(num_rolls)
+  
+  # Use "apply" to calculate the revenue
+  # To use "apply", we choose to convert vector "rolls" into a matrix
+  revenue <- sum(apply(matrix(rolls, ncol = num_rolls), 2, function(row) {
+    if (row %in% c(2,4,6)){
+      return(row)
+    } else{
+      return(0)
+    }
+  }))
+  
+  # Calculate net income using net_income = revenue - cost
+  cost <- 2*num_rolls  
+  return(revenue-cost)
+}
+```
+
+### Task (b)
+
+In this task, we will show that all versions work. Notice that we will pass a random number into the function `myRng`, since we do not need to fix the result at this moment.
+
+```{r}
+for (t in c(3,3000)) {
+  cat("Result for ", t, " using v1 is ", play_dice_v1(t, myRng(sample.int(1000, 1))), "\n")
+  cat("Result for ", t, " using v2 is ", play_dice_v2(t, myRng(sample.int(1000, 1))), "\n")
+  cat("Result for ", t, " using v3 is ", play_dice_v3(t, myRng(sample.int(1000, 1))), "\n")
+  cat("Result for ", t, " using v4 is ", play_dice_v4(t, myRng(sample.int(1000, 1))), "\n")
+}
+```
+
+### Task (c)
+
+In this task, we will show that the four versions give the same result. We will control the randomization by putting the same seed to RNG.
+
+```{r}
+seed <- 114
+for (t in c(3,3000)) {
+  cat("Result for ", t, " using v1 is ", play_dice_v1(t, myRng(seed)), "\n")
+  cat("Result for ", t, " using v2 is ", play_dice_v2(t, myRng(seed)), "\n")
+  cat("Result for ", t, " using v3 is ", play_dice_v3(t, myRng(seed)), "\n")
+  cat("Result for ", t, " using v4 is ", play_dice_v4(t, myRng(seed)), "\n")
+}
+```
+
+It is clear that the four versions give the same result.
+
+```{r}
+#| code-fold: true
+library(microbenchmark)
+```
+
+```{r}
+# Benchmarking with low input (100)
+seed <- 896
+benchmark_low <- microbenchmark(
+  v1 = play_dice_v1(100, myRng(seed)),
+  v2 = play_dice_v2(100, myRng(seed)),
+  v3 = play_dice_v3(100, myRng(seed)),
+  v4 = play_dice_v4(100, myRng(seed)),
+  times = 1000
+)
+
+# Benchmarking with large input (10000)
+benchmark_large <- microbenchmark(
+  v1 = play_dice_v1(10000, myRng(seed)),
+  v2 = play_dice_v2(10000, myRng(seed)),
+  v3 = play_dice_v3(10000, myRng(seed)),
+  v4 = play_dice_v4(10000, myRng(seed)),
+  times = 1000
+)
+
+# Print the benchmark results
+print(benchmark_low)
+print(benchmark_large)
+```
+
+### Problem 2
+
+```{r}
+data <- read.csv("./cars.csv")
+data <- data.frame(data)
+```
+
+```{r}
+colnames(data) <- c("height", "length", "width", "driveLine", "engineType", "isHybrid", "numGears", "transmission", "cityMPG", "fuelType", "highwayMPG", "classification", "ID", "make", "modelYear", "IDYear", "horsepower", "torque")
+```
+
+```{r}
+data <- data[which(data$fuelType == "Gasoline"),]
+```
+
+```{r}
+M1 <- lm(highwayMPG~horsepower+numGears+cityMPG+torque, data = data)
+summary(M1)
+```
+
+```{r}
+library(emmeans)
+```
+
+```{r}
+M2 <- lm(highwayMPG~horsepower*torque, data = data)
+interact_plot(M2, pred = horsepower, modx = torque)
+```
+
+```{r}
+library(imager)
+```
+
+```{r}
+file_path <- system.file("./q2.jpg",package='imager') 
+im <- load.image("./q2.jpg")
+plot(1:10,ty="n")
+rasterImage(im,2,1,10,10)
 ```
