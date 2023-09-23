@@ -1,5 +1,7 @@
 ---
 title: "STATS506_PS2_code"
+format:
+  pdf
 ---
 
 ## Problem 1
@@ -162,37 +164,100 @@ for (t in c(3,3000)) {
 
 It is clear that the four versions give the same result.
 
+### Task (d)
+
+First, we need to import `microbenchmark` library.
+
 ```{r}
 #| code-fold: true
 library(microbenchmark)
 ```
 
+Then, we test the performance with a low input.
+
 ```{r}
-# Benchmarking with low input (100)
+# Benchmark with low input (100)
 seed <- 896
 benchmark_low <- microbenchmark(
   v1 = play_dice_v1(100, myRng(seed)),
   v2 = play_dice_v2(100, myRng(seed)),
   v3 = play_dice_v3(100, myRng(seed)),
   v4 = play_dice_v4(100, myRng(seed)),
-  times = 1000
+  times = 100
 )
+print(benchmark_low)
+```
 
-# Benchmarking with large input (10000)
+And we test the performance with a large input.
+
+```{r}
+# Benchmark with large input (10000)
 benchmark_large <- microbenchmark(
   v1 = play_dice_v1(10000, myRng(seed)),
   v2 = play_dice_v2(10000, myRng(seed)),
   v3 = play_dice_v3(10000, myRng(seed)),
   v4 = play_dice_v4(10000, myRng(seed)),
-  times = 1000
+  times = 100
 )
-
-# Print the benchmark results
-print(benchmark_low)
 print(benchmark_large)
 ```
 
-### Problem 2
+Notice that the scale of time using each version differs largely. So, we may take log-transformation of time to make the plot.
+
+```{r}
+log_time_low <- benchmark_low
+log_time_low$time <- log(benchmark_low$time)
+plot(log_time_low, xlab = "version", ylab = "log of time", main = "Benchmark_low")
+```
+
+By the boxplot, we can see that for low input, the running time for v1 and v3 are close to each other. And v2 is the fastest one while v4 is the lowest one on average.
+
+```{r}
+log_time_large <- benchmark_large
+log_time_large$time <- log(benchmark_large$time)
+plot(log_time_large, xlab = "version", ylab = "time", main = "Benchmark_large")
+```
+
+By the boxplot, we can see that for large input, running time for 4 versions can be ranked as $v2 < v3<v1<v4$ on average.
+
+### Task (e)
+
+For convenience, we will only use `play_dice_v2` in this problem, since the results of 4 versions of function are the same. In a single call of `play_dice_v2` function, we will roll the dice `num_rolls` of times. And we will record the average net income per roll among `num_rolls` times of dice rolls.
+
+In the following Monte Carlo simulation, we will choose 3 different values for `num_rolls`, which are $3,30,300$. And we will repeat this experiment for 100 times.
+
+```{r}
+reps <- 100
+
+# Create 3 empty vectors to record the result
+n3 <- vector(length = reps)
+n30 <- vector(length = reps)
+n300 <- vector(length = reps)
+
+# Monte Carlo simulation
+for (i in seq_len(reps)) {
+  n3[i] <- play_dice_v2(3,myRng(sample.int(1000, 1)))/3
+  n30[i] <- play_dice_v2(30,myRng(sample.int(1000, 1)))/30
+  n300[i] <- play_dice_v2(300,myRng(sample.int(1000, 1)))/300
+}
+
+```
+
+Here, we can plot our result on using boxplot.
+
+```{r}
+boxplot(data.frame(n3, n30, n300))
+```
+
+We can see for $n_{30}$ and $n_{300}$, the average net income per roll is very close to 0. This is not surprising because theoretically,
+
+$$
+\mathbb{E}(net\:income)=\mathbb{E}(revenue)-\mathbb{E}(cost)=\frac{1}{6}(0+2+0+4+0+6)-2=0
+$$
+
+Therefore, we can conclude that this game is a fair game.
+
+## Problem 2
 
 ```{r}
 data <- read.csv("./cars.csv")
@@ -213,21 +278,21 @@ summary(M1)
 ```
 
 ```{r}
-library(emmeans)
+#library(emmeans)
 ```
 
 ```{r}
-M2 <- lm(highwayMPG~horsepower*torque, data = data)
-interact_plot(M2, pred = horsepower, modx = torque)
+#M2 <- lm(highwayMPG~horsepower*torque, data = data)
+#interact_plot(M2, pred = horsepower, modx = torque)
 ```
 
 ```{r}
-library(imager)
+#library(imager)
 ```
 
 ```{r}
-file_path <- system.file("./q2.jpg",package='imager') 
-im <- load.image("./q2.jpg")
-plot(1:10,ty="n")
-rasterImage(im,2,1,10,10)
+#file_path <- system.file("./q2.jpg",package='imager') 
+#im <- load.image("./q2.jpg")
+#plot(1:10,ty="n")
+#rasterImage(im,2,1,10,10)
 ```
